@@ -1,4 +1,4 @@
--r koa.txt
+-r juniper.txt
 gunicorn
 gevent
 python-memcached
