@@ -42,7 +42,7 @@ class ProcessOrderTest(ShopifyTestCase):
                            self.enroll_uri,
                            status_code=400)
             with self.assertRaises(HTTPError):
-                result = process.delay(fixup_json_payload)
+                result = process.delay(fixup_json_payload, Order.ACTION_ENROLL)
                 result.get(5)
 
         self.assertEqual(result.state, 'FAILURE')
@@ -96,7 +96,7 @@ class ProcessOrderTest(ShopifyTestCase):
             m.register_uri('POST',
                            self.enroll_uri,
                            json=enrollment_response)
-            result = process.delay(self.json_payload)
+            result = process.delay(self.json_payload, Order.ACTION_ENROLL)
             result.get(5)
 
         self.assertEqual(result.state, 'SUCCESS')
@@ -144,9 +144,9 @@ class ProcessOrderTest(ShopifyTestCase):
             m.register_uri('POST',
                            self.enroll_uri,
                            json=enrollment_response)
-            result1 = process.delay(self.json_payload)
-            result2 = process.delay(self.json_payload)
-            result3 = process.delay(self.json_payload)
+            result1 = process.delay(self.json_payload, Order.ACTION_ENROLL)
+            result2 = process.delay(self.json_payload, Order.ACTION_ENROLL)
+            result3 = process.delay(self.json_payload, Order.ACTION_ENROLL)
             result1.get(5)
             result2.get(5)
             result3.get(5)

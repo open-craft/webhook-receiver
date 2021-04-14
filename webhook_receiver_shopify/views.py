@@ -79,7 +79,7 @@ def order_create(_, conf, data):
     # Process order
     if order.status == Order.NEW:
         logger.info('Scheduling order %s for processing' % order.order_id)
-        process.delay(data.content, send_email)
+        process.delay(data.content, Order.ACTION_ENROLL, send_email)
     else:
         logger.info('Order %s already processed, nothing to do' % order.order_id)
 
@@ -102,7 +102,7 @@ def order_delete(_, conf, data):
     # Process order
     if order.status == Order.NEW:
         logger.info('Scheduling order %s for processing' % order.order_id)
-        process.delay(data.content, send_email)
+        process.delay(data.content, Order.ACTION_UNENROLL, send_email)
     else:
         logger.info('Order %s already processed, nothing to do' % order.order_id)
 

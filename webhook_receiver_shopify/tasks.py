@@ -17,7 +17,7 @@ logger = get_task_logger(__name__)
              soft_time_limit=5,
              base=OrderTask,
              autoretry_for=(HTTPError,))
-def process(self, data, send_email=False):
+def process(self, data, action, send_email=False):
     """Parse input data for line items, and create enrollments.
 
     On any error, raise the exception in order to be handled by
@@ -25,6 +25,6 @@ def process(self, data, send_email=False):
     """
 
     logger.debug('Processing order data: %s' % data)
-    self.order = Order.objects.get(order_id=data['id'])
+    self.order  = Order.objects.get(order_id=data['id'], action=action)
 
     process_order(self.order, data, send_email)
