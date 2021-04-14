@@ -13,9 +13,10 @@ from .models import ShopifyOrderItem as OrderItem
 logger = logging.getLogger(__name__)
 
 
-def record_order(data):
+def record_order(data, action):
     return Order.objects.get_or_create(
         order_id=data.content['id'],
+        action=action,
         defaults={
             'webhook': data,
             'email': data.content['customer']['email'],
@@ -101,7 +102,7 @@ def process_line_item(order, item):
     # an exception, we throw that exception up the stack so we can
     # attempt to retry order processing.
     course_id = lookup_course_id(sku)
-    enroll_in_course(course_id, email)
+    enroll_in_course(course_id, email, action=order.action)
 
     # Mark the item as processed
     order_item.finish_processing()

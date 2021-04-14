@@ -133,11 +133,12 @@ def lookup_course_id(sku):
 def enroll_in_course(
         course_id,
         email,
+        action,
         send_email=settings.WEBHOOK_RECEIVER_SEND_ENROLLMENT_EMAIL,
         auto_enroll=settings.WEBHOOK_RECEIVER_AUTO_ENROLL
 ):
     """
-    Auto-enroll email in course.
+    Auto-enroll (or unenroll) email in course.
 
     Uses the bulk enrollment API, defined in lms/djangoapps/bulk_enroll
     """
@@ -161,7 +162,7 @@ def enroll_in_course(
     request_params = {
         "auto_enroll": auto_enroll,
         "email_students": send_email,
-        "action": "enroll",
+        "action": action,
         "courses": course_id,
         "identifiers": email,
     }

@@ -116,7 +116,7 @@ def order_create_or_update(request):
             return HttpResponse(status=402)
 
     # Record order
-    order, created = record_order(data)
+    order, created = record_order(data, Order.ACTION_ENROLL)
     if created:
         logger.info('Created order %s' % order.order_id)
     else:

@@ -91,7 +91,14 @@ class Order(ConcurrentTransitionMixin, Model):
     PROCESSED = STATE.PROCESSED
     ERROR = STATE.ERROR
 
+    ACTION_ENROLL = "enroll"
+    ACTION_UNENROLL = "unenroll"
+
     CHOICES = STATE.CHOICES
+    ACTIONS = (
+        (ACTION_ENROLL, ACTION_ENROLL),
+        (ACTION_UNENROLL, ACTION_UNENROLL),
+    )
 
     id = AutoField(primary_key=True, serialize=False, verbose_name='ID')
     order_id = BigIntegerField(editable=False)
@@ -99,6 +106,7 @@ class Order(ConcurrentTransitionMixin, Model):
     first_name = CharField(max_length=254)
     last_name = CharField(max_length=254)
     received = DateTimeField(default=timezone.now)
+    action = CharField(choices=ACTIONS, max_length=8)
     status = FSMIntegerField(choices=CHOICES,
                              default=NEW,
                              protected=True)
