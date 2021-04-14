@@ -21,80 +21,93 @@ from .tasks import process
 logger = logging.getLogger(__name__)
 
 
-@csrf_exempt
-@require_POST
-def order_create_or_update(request):
-    # Load configuration
-    conf = settings.WEBHOOK_RECEIVER_SETTINGS['woocommerce']
+def extract_webhook_data(func):
+    """
+    Validate the incoming webhook and extract its content.
 
-    # When WooCommerce web hooks are first created or enabled,
-    # WooCommerce sends a POST request that is not JSON, but instead
-    # application/x-www-form-urlencoded with a single form value:
-    # "webhook_id=<num>". If we receive that, we return OK
-    # immediately. Any other non-JSON content is unexpected, and we
-    # send a Bad Request response.
-    content_type = request.content_type
-    if content_type != 'application/json':
-        remote_host, is_routable = get_client_ip(request)
-        user_agent = request.headers.get('user-agent')
-        if content_type == 'application/x-www-form-urlencoded':
-            try:
-                webhook_id = request.POST['webhook_id']
-                logger.info('Webhook with webhook_id %s created or '
-                            'enabled from %s (%s)' % (webhook_id,
-                                                      remote_host,
-                                                      user_agent))
-                return HttpResponse(status=200)
-            except KeyError:
-                logger.warn('Received application/x-www-form-urlencoded '
-                            'request without a webhook_id parameter '
-                            'from %s (%s)' % (remote_host, user_agent))
-                return HttpResponse(status=400)
-        else:
-            logger.warn('Received request with unexpected '
-                        'content type %s '
-                        'from %s (%s)' % (content_type,
-                                          remote_host,
-                                          user_agent))
+    Ensure that the necessary parameters are set on the incoming request. In case the
+    data is valid, extract it and pass directly to the wrapped function
+    """
+    def inner(request):
+        # Load configuration
+        conf = settings.WEBHOOK_RECEIVER_SETTINGS['woocommerce']
+
+        try:
+            data = receive_json_webhook(request)
+        except Exception:
             return HttpResponse(status=400)
 
-    # Here, we're sure that what we got is JSON, so let's start
-    # processing it.
-    try:
-        data = receive_json_webhook(request)
-    except Exception:
-        return HttpResponse(status=400)
+        # When WooCommerce web hooks are first created or enabled,
+        # WooCommerce sends a POST request that is not JSON, but instead
+        # application/x-www-form-urlencoded with a single form value:
+        # "webhook_id=<num>". If we receive that, we return OK
+        # immediately. Any other non-JSON content is unexpected, and we
+        # send a Bad Request response.
+        content_type = request.content_type
+        if content_type != 'application/json':
+            remote_host, is_routable = get_client_ip(request)
+            user_agent = request.headers.get('user-agent')
+            if content_type == 'application/x-www-form-urlencoded':
+                try:
+                    webhook_id = request.POST['webhook_id']
+                    logger.info('Webhook with webhook_id %s created or '
+                                'enabled from %s (%s)' % (webhook_id,
+                                                          remote_host,
+                                                          user_agent))
+                    return HttpResponse(status=200)
+                except KeyError:
+                    logger.warn('Received application/x-www-form-urlencoded '
+                                'request without a webhook_id parameter '
+                                'from %s (%s)' % (remote_host, user_agent))
+                    return HttpResponse(status=400)
+            else:
+                logger.warn('Received request with unexpected '
+                            'content type %s '
+                            'from %s (%s)' % (content_type,
+                                              remote_host,
+                                              user_agent))
+                return HttpResponse(status=400)
 
-    try:
-        source = data.headers['X-Wc-Webhook-Source']
-    except KeyError:
-        logger.error('Request is missing X-WC-Webhook-Source header')
-        fail_and_save(data)
-        return HttpResponse(status=400)
+        # Here, we're sure that what we got is JSON, so let's start
+        # processing it.
+        try:
+            data = receive_json_webhook(request)
+        except Exception:
+            return HttpResponse(status=400)
 
-    if (conf['source'] != source):
-        logger.error('Unknown source %s' % source)
-        fail_and_save(data)
-        return HttpResponse(status=403)
+        source = data.headers.get('X-Wc-Webhook-Source')
+        if not source:
+            logger.error('Request is missing X-Wc-Webhook-Source header')
+            fail_and_save(data)
+            return HttpResponse(status=400)
 
-    try:
-        hmac = data.headers['X-Wc-Webhook-Signature']
-    except KeyError:
-        logger.error('Request is missing X-WC-Webhook-Signature header')
-        fail_and_save(data)
-        return HttpResponse(status=400)
+        if conf['source'] != source:
+            logger.error('Unknown source %s' % source)
+            fail_and_save(data)
+            return HttpResponse(status=403)
 
-    if (not hmac_is_valid(conf['secret'],
-                          data.body,
-                          hmac)):
-        logger.error('Failed to verify HMAC signature')
-        fail_and_save(data)
-        return HttpResponse(status=403)
+        hmac = data.headers.get('X-Wc-Webhook-Signature')
+        if not hmac:
+            logger.error('Request is missing X-Wc-Webhook-Signature header')
+            fail_and_save(data)
+            return HttpResponse(status=400)
 
-    # OK, we have valid, signed, JSON data. Put that into the
-    # database, so we have a record of the transaction.
-    finish_and_save(data)
+        if not hmac_is_valid(conf['secret'], data.body, hmac):
+            logger.error('Failed to verify HMAC signature')
+            fail_and_save(data)
+            return HttpResponse(status=403)
 
+        finish_and_save(data)
+
+        return func(request, conf, data)
+
+    return inner
+
+
+@csrf_exempt
+@require_POST
+@extract_webhook_data
+def order_create_or_update(_, conf, data):
     # If we require that an order be paid before we can process it,
     # and it isn't, bail here and wait for the order to be
     # subsequently updated.
@@ -116,7 +129,7 @@ def order_create_or_update(request):
             return HttpResponse(status=402)
 
     # Record order
-    order, created = record_order(data, Order.ACTION_ENROLL)
+    order, created = record_order(data, action=Order.ACTION_ENROLL)
     if created:
         logger.info('Created order %s' % order.order_id)
     else:
@@ -131,5 +144,28 @@ def order_create_or_update(request):
     else:
         logger.info('Order %s already processed, '
                     'nothing to do' % order.order_id)
+
+    return HttpResponse(status=200)
+
+
+@csrf_exempt
+@require_POST
+@extract_webhook_data
+def order_delete(_, conf, data):
+    # Record order deletion
+    order, created = record_order(data, action=Order.ACTION_UNENROLL)
+    if created:
+        logger.info('Created order %s' % order.order_id)
+    else:
+        logger.info('Retrieved order %s' % order.order_id)
+
+    send_email = conf.get('send_email', True)
+
+    # Process order
+    if order.status == Order.NEW:
+        logger.info('Scheduling order %s for processing' % order.order_id)
+        process.delay(data.content, send_email)
+    else:
+        logger.info('Order %s already processed, nothing to do' % order.order_id)
 
     return HttpResponse(status=200)
