@@ -118,18 +118,18 @@ def order_create_or_update(request):
     # Record order
     order, created = record_order(data)
     if created:
-        logger.info('Created order %s' % order.id)
+        logger.info('Created order %s' % order.order_id)
     else:
-        logger.info('Retrieved order %s' % order.id)
+        logger.info('Retrieved order %s' % order.order_id)
 
     send_email = conf.get('send_email', True)
 
     # Process order
     if order.status == Order.NEW:
-        logger.info('Scheduling order %s for processing' % order.id)
+        logger.info('Scheduling order %s for processing' % order.order_id)
         process.delay(data.content, send_email)
     else:
         logger.info('Order %s already processed, '
-                    'nothing to do' % order.id)
+                    'nothing to do' % order.order_id)
 
     return HttpResponse(status=200)

@@ -29,7 +29,7 @@ class RecordOrderTest(ShopifyTestCase):
         # that in the payload
         order1, created1 = record_order(self.webhook_data)
         self.assertTrue(created1)
-        self.assertEqual(order1.id, self.json_payload['id'])
+        self.assertEqual(order1.order_id, self.json_payload['id'])
         # Try to create the order again, make sure we get a reference
         # instead
         order2, created2 = record_order(self.webhook_data)
@@ -127,7 +127,7 @@ class ProcessLineItemTest(ShopifyTestCase):
 
     def test_valid_single_line_item(self):
         order = Order()
-        order.id = 40
+        order.order_id = 40
         order.save()
         line_item = {
             "properties": [{"name": "email",
@@ -185,7 +185,7 @@ class ProcessLineItemTest(ShopifyTestCase):
 
     def test_invalid_line_item(self):
         order = Order()
-        order.id = 41
+        order.order_id = 41
         order.save()
         line_items = [{"sku": "course-v1:org+nosuchcourse+run1"},
                       {"properties": [{"name": "email",
@@ -196,7 +196,7 @@ class ProcessLineItemTest(ShopifyTestCase):
 
     def test_invalid_sku(self):
         order = Order()
-        order.id = 42
+        order.order_id = 42
         order.save()
         line_items = [{"properties": [{"name": "email",
                                        "value": "learner@example.com"}],
@@ -217,7 +217,7 @@ class ProcessLineItemTest(ShopifyTestCase):
 
     def test_invalid_email(self):
         order = Order()
-        order.id = 43
+        order.order_id = 43
         order.save()
         line_items = [{"properties": [{"name": "email",
                                        "value": "akjzcdfbgakugbfvkljzgh"}],

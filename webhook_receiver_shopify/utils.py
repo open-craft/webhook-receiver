@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 def record_order(data):
     return Order.objects.get_or_create(
-        id=data.content['id'],
+        order_id=data.content['id'],
         defaults={
             'webhook': data,
             'email': data.content['customer']['email'],
@@ -28,16 +28,16 @@ def record_order(data):
 def process_order(order, data, send_email=False):
     if order.status == Order.PROCESSED:
         logger.warning('Order %s has already '
-                       'been processed, ignoring' % order.id)
+                       'been processed, ignoring' % order.order_id)
         return
     elif order.status == Order.ERROR:
         logger.warning('Order %s has previously '
-                       'failed to process, ignoring' % order.id)
+                       'failed to process, ignoring' % order.order_id)
         return
 
     if order.status == Order.PROCESSING:
         logger.warning('Order %s is already '
-                       'being processed, retrying' % order.id)
+                       'being processed, retrying' % order.order_id)
     else:
         # Start processing the order. A concurrent attempt to access the
         # same order will result in django_fsm.ConcurrentTransition on
@@ -53,7 +53,7 @@ def process_order(order, data, send_email=False):
         # attempt to retry order processing.
         process_line_item(order, item)
         logger.debug('Successfully processed line item '
-                     '%s for order %s' % (item, order.id))
+                     '%s for order %s' % (item, order.order_id))
 
     # Mark the order status
     order.finish_processing()

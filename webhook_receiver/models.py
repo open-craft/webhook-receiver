@@ -1,6 +1,7 @@
 from django.db.models import Model
 from django.db.models import GenericIPAddressField, BinaryField, DateTimeField
 from django.db.models import CharField, BigIntegerField, EmailField
+from django.db.models.fields import AutoField
 try:
     # Django 3.1 and later has a built-in JSONField
     from django.db.models import JSONField
@@ -92,7 +93,8 @@ class Order(ConcurrentTransitionMixin, Model):
 
     CHOICES = STATE.CHOICES
 
-    id = BigIntegerField(primary_key=True, editable=False)
+    id = AutoField(primary_key=True, serialize=False, verbose_name='ID')
+    order_id = BigIntegerField(editable=False)
     email = EmailField()
     first_name = CharField(max_length=254)
     last_name = CharField(max_length=254)
@@ -106,20 +108,20 @@ class Order(ConcurrentTransitionMixin, Model):
                 target=PROCESSING,
                 on_error=ERROR)
     def start_processing(self):
-        logger.debug('Processing order %s' % self.id)
+        logger.debug('Processing order %s' % self.order_id)
 
     @transition(field=status,
                 source=PROCESSING,
                 target=PROCESSED,
                 on_error=ERROR)
     def finish_processing(self):
-        logger.debug('Finishing order %s' % self.id)
+        logger.debug('Finishing order %s' % self.order_id)
 
     @transition(field=status,
                 source=PROCESSING,
                 target=ERROR)
     def fail(self):
-        logger.debug('Failed to process order %s' % self.id)
+        logger.debug('Failed to process order %s' % self.order_id)
 
 
 class OrderItem(ConcurrentTransitionMixin, Model):
@@ -146,7 +148,7 @@ class OrderItem(ConcurrentTransitionMixin, Model):
                 on_error=ERROR)
     def start_processing(self):
         logger.debug('Processing item %s for order %s' % (self.id,
-                                                          self.order.id))
+                                                          self.order.order_id))
 
     @transition(field=status,
                 source=PROCESSING,
@@ -154,7 +156,7 @@ class OrderItem(ConcurrentTransitionMixin, Model):
                 on_error=ERROR)
     def finish_processing(self):
         logger.debug('Finishing item %s for order %s' % (self.id,
-                                                         self.order.id))
+                                                         self.order.order_id))
 
     @transition(field=status,
                 source=PROCESSING,
@@ -162,4 +164,4 @@ class OrderItem(ConcurrentTransitionMixin, Model):
     def fail(self):
         logger.debug('Failed to process item %s '
                      'for order %s' % (self.id,
-                                       self.order.id))
+                                       self.order.order_id))

@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 def record_order(data):
     return Order.objects.get_or_create(
-        id=data.content['id'],
+        order_id=data.content['id'],
         defaults={
             'webhook': data,
             'email': data.content['billing']['email'],
