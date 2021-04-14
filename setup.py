@@ -35,8 +35,17 @@ setup(
         'django-celery>=3.2.1',
         'django_fsm',
         'edx-rest-api-client>=1.9.2',
+        'edx-auth-backends>=2.0.2',
+        'django-jsonfield-backport'
     ],
     setup_requires=[
         'setuptools_scm<6',
     ],
+    entry_points={
+        'lms.djangoapp': [
+            'webhook_receiver = webhook_receiver.apps:WebhookReceiverConfig',
+            'webhook_receiver_shopify = webhook_receiver_shopify.apps:WebhookReceiverShopifyConfig',
+            'webhook_receiver_woocommerce = webhook_receiver_woocommerce.apps:WebhookReceiverWoocommerceConfig',
+        ]
+    }
 )
