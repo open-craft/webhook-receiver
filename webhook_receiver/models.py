@@ -1,7 +1,7 @@
 from django.db.models import Model
 from django.db.models import GenericIPAddressField, BinaryField, DateTimeField
 from django.db.models import CharField, BigIntegerField, EmailField
-from django.db.models.fields import AutoField
+from django.db.models.fields import AutoField, BigAutoField
 try:
     # Django 3.1 and later has a built-in JSONField
     from django.db.models import JSONField
@@ -100,7 +100,7 @@ class Order(ConcurrentTransitionMixin, Model):
         (ACTION_UNENROLL, ACTION_UNENROLL),
     )
 
-    id = AutoField(primary_key=True, serialize=False, verbose_name='ID')
+    id = BigAutoField(primary_key=True, serialize=False, verbose_name='ID')
     order_id = BigIntegerField(editable=False)
     email = EmailField()
     first_name = CharField(max_length=254)
