@@ -36,7 +36,7 @@ setup(
         'django_fsm',
         'edx-rest-api-client>=1.9.2',
         'edx-auth-backends>=2.0.2',
-        'django-jsonfield-backport'
+        'jsonfield2<3.1.0',
     ],
     setup_requires=[
         'setuptools_scm<6',

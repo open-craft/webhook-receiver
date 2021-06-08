@@ -7,8 +7,8 @@ try:
     from django.db.models import JSONField
 except ImportError:
     # For earlier Django versions we must use JSONField from
-    # django-jsonfield-backport
-    from django_jsonfield_backport.models import JSONField
+    # jsonfield2
+    from jsonfield.fields import JSONField
 
 from django_fsm import FSMIntegerField, ConcurrentTransitionMixin, transition
 from django.utils import timezone
