@@ -68,13 +68,6 @@ def extract_webhook_data(func):
                                               user_agent))
                 return HttpResponse(status=400)
 
-        # Here, we're sure that what we got is JSON, so let's start
-        # processing it.
-        try:
-            data = receive_json_webhook(request)
-        except Exception:
-            return HttpResponse(status=400)
-
         source = data.headers.get('X-Wc-Webhook-Source')
         if not source:
             logger.error('Request is missing X-Wc-Webhook-Source header')
@@ -111,8 +104,7 @@ def order_create_or_update(_, conf, data):
     # If we require that an order be paid before we can process it,
     # and it isn't, bail here and wait for the order to be
     # subsequently updated.
-    require_payment = conf.get('require_payment', False)
-    if require_payment:
+    if conf.get('require_payment', False):
         date_paid_gmt = data.content.get('date_paid_gmt')
         if date_paid_gmt:
             try:
