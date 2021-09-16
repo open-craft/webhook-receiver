@@ -17,6 +17,8 @@ from .tasks import process
 
 logger = logging.getLogger(__name__)
 
+FINANCIAL_STATUS_UNENROLL = ["refunded", "voided"]
+
 
 def extract_webhook_data(func):
     """
@@ -103,6 +105,33 @@ def order_delete(_, conf, data):
     if order.status == Order.NEW:
         logger.info('Scheduling order %s for processing' % order.order_id)
         process.delay(data.content, Order.ACTION_UNENROLL, send_email)
+    else:
+        logger.info('Order %s already processed, nothing to do' % order.order_id)
+
+    return HttpResponse(status=200)
+
+@csrf_exempt
+@require_POST
+@extract_webhook_data
+def order_update(_, conf, data):
+    payload = data.content
+    required_action = Order.ACTION_ENROLL
+    if payload['financial_status'] in FINANCIAL_STATUS_UNENROLL:
+        required_action = Order.ACTION_UNENROLL
+
+    # Record order updation
+    order, created = record_order(data, action=required_action)
+    if created:
+        logger.info('Created order %s' % order.order_id)
+    else:
+        logger.info('Retrieved order %s' % order.order_id)
+
+    send_email = conf.get('send_email', True)
+
+    # Process order
+    if order.status == Order.NEW:
+        logger.info('Scheduling order %s for processing' % order.order_id)
+        process.delay(data.content, required_action, send_email)
     else:
         logger.info('Order %s already processed, nothing to do' % order.order_id)
 
