@@ -45,7 +45,7 @@ def plugin_settings(settings):
 
     settings.WEBHOOK_RECEIVER_LMS_BASE_URL = get_setting(
         settings,
-        'LMS_BASE',
+        'LMS_ROOT_URL',
         default_val='http://localhost:18000'
     )
 
