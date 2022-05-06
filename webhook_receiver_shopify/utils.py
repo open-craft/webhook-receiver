@@ -102,7 +102,9 @@ def process_line_item(order, item, email=None):
     # an exception, we throw that exception up the stack so we can
     # attempt to retry order processing.
     course_id = lookup_course_id(sku)
-    enroll_in_course(course_id, email, action=order.action)
+
+    if course_id:
+        enroll_in_course(course_id, email, action=order.action)
 
     # Mark the item as processed
     order_item.finish_processing()

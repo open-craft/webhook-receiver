@@ -105,13 +105,10 @@ class ProcessOrderTest(ShopifyTestCase):
             m.register_uri('POST',
                            self.enroll_uri,
                            status_code=404)
-            # Non-existent course should raise a 404
-            with self.assertRaises(HTTPError):
-                process_order(order, fixup_json_payload)
+            # Non-existent course should NOT raise a 404
+            process_order(order, fixup_json_payload)
 
-        # At this stage, the order is still PROCESSING -- it's the
-        # task failure handler's job to set the status to ERROR
-        self.assertEqual(order.status, Order.PROCESSING)
+        self.assertEqual(order.status, Order.PROCESSED)
 
     def test_valid_order_again(self):
         """Re-inject a previously processed order, so we can check
