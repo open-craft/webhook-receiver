@@ -17,7 +17,8 @@ from .tasks import process
 
 logger = logging.getLogger(__name__)
 
-FINANCIAL_STATUS_UNENROLL = ["refunded", "voided"]
+FINANCIAL_STATUS_UNENROLL = ["pending", "refunded", "voided"]
+UNENROLL_TAG = "GIFTCARD"
 
 
 def extract_webhook_data(func):
@@ -77,13 +78,14 @@ def order_create(_, conf, data):
         logger.info('Retrieved order %s' % order.order_id)
 
     send_email = conf.get('send_email', True)
+    payload = data.content
 
     # Process order
-    if order.status == Order.NEW:
+    if order.status == Order.NEW and payload['financial_status'] != 'pending':
         logger.info('Scheduling order %s for processing' % order.order_id)
         process.delay(data.content, Order.ACTION_ENROLL, send_email)
     else:
-        logger.info('Order %s already processed, nothing to do' % order.order_id)
+        logger.info('Order %s already processed or in pending state, nothing to do' % order.order_id)
 
     return HttpResponse(status=200)
 
@@ -119,6 +121,9 @@ def order_update(_, conf, data):
     if payload['financial_status'] in FINANCIAL_STATUS_UNENROLL:
         required_action = Order.ACTION_UNENROLL
 
+    if UNENROLL_TAG in payload['tags']:
+        required_action = Order.ACTION_UNENROLL
+
     # Record order updation
     order, created = record_order(data, action=required_action)
     if created:
@@ -129,10 +134,7 @@ def order_update(_, conf, data):
     send_email = conf.get('send_email', True)
 
     # Process order
-    if order.status == Order.NEW:
-        logger.info('Scheduling order %s for processing' % order.order_id)
-        process.delay(data.content, required_action, send_email)
-    else:
-        logger.info('Order %s already processed, nothing to do' % order.order_id)
+    logger.info('Scheduling order %s for processing' % order.order_id)
+    process.delay(data.content, required_action, send_email)
 
     return HttpResponse(status=200)

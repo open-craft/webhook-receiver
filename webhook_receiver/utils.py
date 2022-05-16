@@ -104,6 +104,13 @@ def lookup_course_id(sku):
     logger.debug('Resolving SKU %s by looking up %s.' % (sku, lookup_url))
     resp = requests.head(lookup_url,
                          allow_redirects=True)
+
+    # If we get a 404, the course might belong to a different instance.
+    # Log a warning and return.
+    if resp.status_code == 404:
+        logger.warning('SKU not found: %s' % sku)
+        return None
+
     resp.raise_for_status()
 
     # The redirect could point to anywhere in the course: the course
@@ -175,7 +182,7 @@ def enroll_in_course(
         request_params
     )
 
-    # Throw an exception if we get any error back from the API.
+    # Throw an exception if we get any error other than 404 back from the API.
     # Apart from an HTTP 200, we might also get:
     #
     # HTTP 400: if we've sent a malformed request (for example, one
@@ -188,11 +195,17 @@ def enroll_in_course(
     # HTTP 404: if we've specified a course ID that does not exist
     #           (although it does follow the format that Open edX expects)
     # HTTP 500: in case of a server-side issue
+    # Don't raise exception if we get a 404 back from the API since it could be
+    # a course that exists on a different instance.
     if response.status_code >= 400:
         logger.error("POST request to %s with parameters %s "
                      "returned HTTP %s" % (bulk_enroll_url,
                                            request_params,
                                            response.status_code))
+    if response.status_code == 404:
+        logger.warning("Course %s not found." % course_id)
+        return
+
     response.raise_for_status()
 
     # If all is well, log the response at the debug level.
