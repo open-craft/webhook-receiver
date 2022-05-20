@@ -125,15 +125,15 @@ def order_update(_, conf, data):
     if UNENROLL_TAG in payload['tags']:
         required_action = Order.ACTION_UNENROLL
 
+    if ENROLL_TAG in payload['tags']:
+        required_action = Order.ACTION_ENROLL
+
     # Record order updation
     order, created = record_order(data, action=required_action)
     if created:
         logger.info('Created order %s' % order.order_id)
     else:
         logger.info('Retrieved order %s' % order.order_id)
-    
-    if order.status == Order.NEW and ENROLL_TAG in payload['tags']:
-        required_action = Order.ACTION_ENROLL
 
     send_email = conf.get('send_email', True)
     # Process order
