@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 FINANCIAL_STATUS_UNENROLL = ["pending", "refunded", "voided"]
 UNENROLL_TAG = "GIFTCARD"
+ENROLL_TAG = "AUTHORIZED"
 
 
 def extract_webhook_data(func):
@@ -130,9 +131,11 @@ def order_update(_, conf, data):
         logger.info('Created order %s' % order.order_id)
     else:
         logger.info('Retrieved order %s' % order.order_id)
+    
+    if order.status == Order.NEW and ENROLL_TAG in payload['tags']:
+        required_action = Order.ACTION_ENROLL
 
     send_email = conf.get('send_email', True)
-
     # Process order
     logger.info('Scheduling order %s for processing' % order.order_id)
     process.delay(data.content, required_action, send_email)
