@@ -67,12 +67,12 @@ def extract_webhook_data(func):
     return inner
 
 
-def validate_webhook_payload(payload):
+def validate_order_tags(order_tags):
     """
     Validate payload parsed from webhook data
     """
-    has_enroll_tag = ENROLL_TAG in payload['tags']
-    has_unenroll_tag = UNENROLL_TAG in payload['tags']
+    has_enroll_tag = ENROLL_TAG in order_tags
+    has_unenroll_tag = UNENROLL_TAG in order_tags
     
     if has_enroll_tag and has_unenroll_tag:
         error_msg = 'Both "%s" (to unenroll) and "%s" (to enroll) tags exist in the payload' % (UNENROLL_TAG, ENROLL_TAG)
@@ -133,9 +133,9 @@ def order_delete(_, conf, data):
 def order_update(_, conf, data):
     payload = data.content
 
-    is_payload_valid, error_msg = validate_webhook_payload(payload)
-    if not is_payload_valid:
-        logger.error('Payload is invalid: "%s", not proceed further' % error_msg)
+    is_order_tags_valid, error_msg = validate_order_tags(payload['tags'])
+    if not is_order_tags_valid:
+        logger.error('Order tags info is invalid: %s, not proceed further' % error_msg)
         return HttpResponse(status=200)
 
     required_action = Order.ACTION_ENROLL
