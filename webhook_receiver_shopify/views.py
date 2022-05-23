@@ -69,7 +69,7 @@ def extract_webhook_data(func):
 
 def validate_order_tags(order_tags):
     """
-    Validate payload parsed from webhook data
+    Validate order tags from webhook data
     """
     has_enroll_tag = ENROLL_TAG in order_tags
     has_unenroll_tag = UNENROLL_TAG in order_tags
