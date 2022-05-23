@@ -67,6 +67,20 @@ def extract_webhook_data(func):
     return inner
 
 
+def validate_webhook_payload(payload):
+    """
+    Validate payload parsed from webhook data
+    """
+    has_enroll_tag = ENROLL_TAG in payload['tags']
+    has_unenroll_tag = UNENROLL_TAG in payload['tags']
+    
+    if has_enroll_tag and has_unenroll_tag:
+        error_msg = 'Both "%s" (to unenroll) and "%s" (to enroll) tags exist in the payload' % (UNENROLL_TAG, ENROLL_TAG)
+        return False, error_msg
+
+    return True, None
+
+
 @csrf_exempt
 @require_POST
 @extract_webhook_data
@@ -118,6 +132,12 @@ def order_delete(_, conf, data):
 @extract_webhook_data
 def order_update(_, conf, data):
     payload = data.content
+
+    is_payload_valid, error_msg = validate_webhook_payload(payload)
+    if not is_payload_valid:
+        logger.error('Payload is invalid: "%s", not proceed further' % error_msg)
+        return HttpResponse(status=200)
+
     required_action = Order.ACTION_ENROLL
     if payload['financial_status'] in FINANCIAL_STATUS_UNENROLL:
         required_action = Order.ACTION_UNENROLL
