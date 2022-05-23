@@ -133,8 +133,8 @@ def order_delete(_, conf, data):
 def order_update(_, conf, data):
     payload = data.content
 
-    is_order_tags_valid, error_msg = validate_order_tags(payload['tags'])
-    if not is_order_tags_valid:
+    is_valid_tags, error_msg = validate_order_tags(payload['tags'])
+    if not is_valid_tags:
         logger.error('Order tags info is invalid: %s, not proceed further' % error_msg)
         return HttpResponse(status=200)
 
