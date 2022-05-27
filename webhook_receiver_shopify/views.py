@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 FINANCIAL_STATUS_UNENROLL = ["pending", "refunded", "voided"]
 UNENROLL_TAG = "GIFTCARD"
+ENROLL_TAG = "AUTHORIZED"
 
 
 def extract_webhook_data(func):
@@ -64,6 +65,20 @@ def extract_webhook_data(func):
         return func(request, conf, data)
 
     return inner
+
+
+def validate_order_tags(order_tags):
+    """
+    Validate order tags from webhook data
+    """
+    has_enroll_tag = ENROLL_TAG in order_tags
+    has_unenroll_tag = UNENROLL_TAG in order_tags
+    
+    if has_enroll_tag and has_unenroll_tag:
+        error_msg = 'Both "%s" (to unenroll) and "%s" (to enroll) tags exist in the payload' % (UNENROLL_TAG, ENROLL_TAG)
+        return False, error_msg
+
+    return True, None
 
 
 @csrf_exempt
@@ -117,12 +132,21 @@ def order_delete(_, conf, data):
 @extract_webhook_data
 def order_update(_, conf, data):
     payload = data.content
+
+    is_valid_tags, error_msg = validate_order_tags(payload['tags'])
+    if not is_valid_tags:
+        logger.error('Order tags info is invalid: %s, not proceed further' % error_msg)
+        return HttpResponse(status=200)
+
     required_action = Order.ACTION_ENROLL
     if payload['financial_status'] in FINANCIAL_STATUS_UNENROLL:
         required_action = Order.ACTION_UNENROLL
 
     if UNENROLL_TAG in payload['tags']:
         required_action = Order.ACTION_UNENROLL
+
+    if ENROLL_TAG in payload['tags']:
+        required_action = Order.ACTION_ENROLL
 
     # Record order updation
     order, created = record_order(data, action=required_action)
@@ -132,7 +156,6 @@ def order_update(_, conf, data):
         logger.info('Retrieved order %s' % order.order_id)
 
     send_email = conf.get('send_email', True)
-
     # Process order
     logger.info('Scheduling order %s for processing' % order.order_id)
     process.delay(data.content, required_action, send_email)
