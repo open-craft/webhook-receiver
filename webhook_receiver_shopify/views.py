@@ -11,7 +11,7 @@ from webhook_receiver.utils import receive_json_webhook, hmac_is_valid
 from webhook_receiver.utils import fail_and_save, finish_and_save
 
 from .utils import record_order
-from .models import Order
+from .models import ShopifyOrder as Order
 from .tasks import process
 
 
@@ -81,6 +81,17 @@ def validate_order_tags(order_tags):
     return True, None
 
 
+def was_order_in_pending_state(order_id):
+    """
+    Check if the order had pending financial status
+    """
+    try:
+        order = Order.objects.filter(order_id=order_id).filter(action='unenroll').latest('received')
+        return order.webhook.content['financial_status'] == 'pending'
+    except Order.DoesNotExist:
+        return False
+
+
 @csrf_exempt
 @require_POST
 @extract_webhook_data
@@ -136,6 +147,11 @@ def order_update(_, conf, data):
     is_valid_tags, error_msg = validate_order_tags(payload['tags'])
     if not is_valid_tags:
         logger.error('Order tags info is invalid: %s, not proceed further' % error_msg)
+        return HttpResponse(status=200)
+
+    # If the order in pending state is voided, no need to process it
+    if payload['financial_status'] == 'voided' and was_order_in_pending_state(payload['id']):
+        logger.info('Order was in pending state, no need to process')
         return HttpResponse(status=200)
 
     required_action = Order.ACTION_ENROLL
