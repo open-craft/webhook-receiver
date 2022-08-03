@@ -1,7 +1,6 @@
 -r base.txt
 celery<4.5
 django<2.3
-edx-rest-api-client<5.3
-anyjson
-pyyaml<5.4
+edx-rest-api-client<5.4
+pyyaml<5.5
 jsonfield2

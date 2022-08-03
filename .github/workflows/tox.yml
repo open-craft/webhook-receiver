@@ -10,7 +10,6 @@ jobs:
     strategy:
       matrix:
         python-version:
-          - 3.5
           - 3.8
 
     steps:
@@ -21,7 +20,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        pip install tox tox-gh-actions tox-pip-version 'setuptools_scm<6'
+        pip install tox tox-gh-actions tox-pip-version
     - name: Test with tox
       env:
         TOX_PIP_VERSION: '20.2.4'

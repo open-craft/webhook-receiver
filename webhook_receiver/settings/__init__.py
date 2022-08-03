@@ -5,6 +5,7 @@ import platform
 
 from dotenv import load_dotenv
 from logging.handlers import SysLogHandler
+from django.core.exceptions import ImproperlyConfigured
 
 # Populate os.environ with variables from .env (if it exists)
 load_dotenv(verbose=True)
@@ -104,32 +105,37 @@ LOGGING = {
     },
     'loggers': {
         'django': {
-            'handlers': ['console', 'local', 'mail_admins'],
+            'handlers': ['console', 'mail_admins'],
             'propagate': False,
             'level': 'INFO'
         },
         'requests': {
-            'handlers': ['console', 'local', 'mail_admins'],
+            'handlers': ['console', 'mail_admins'],
             'propagate': True,
             'level': 'WARNING'
         },
         'factory': {
-            'handlers': ['console', 'local'],
+            'handlers': ['console'],
             'propagate': True,
             'level': 'WARNING'
         },
         'django.request': {
-            'handlers': ['console', 'local', 'mail_admins'],
+            'handlers': ['console', 'mail_admins'],
             'propagate': True,
             'level': 'WARNING'
         },
         '': {
-            'handlers': ['console', 'local'],
+            'handlers': ['console'],
             'level': 'DEBUG',
             'propagate': False
         },
     }
 }
+
+enable_syslog = env.bool('DJANGO_ENABLE_SYSLOG', default=False)
+if enable_syslog:
+    for logger_config in LOGGING['loggers'].values():
+        logger_config['handlers'].append('local')
 
 # We populate ALLOWED_HOSTS from a comma-separated list. Running with
 # DEBUG = True overrides this, and is equivalent to setting the
@@ -144,9 +150,24 @@ CELERY_BROKER_URL = env.str('DJANGO_CELERY_BROKER_URL', default="")
 CELERY_ALWAYS_EAGER = not bool(CELERY_BROKER_URL)
 CELERY_TASK_ALWAYS_EAGER = not bool(CELERY_BROKER_URL)
 
+default_db = env.db(
+    'DJANGO_DATABASE_URL',
+    default='sqlite:///:memory:'
+)
+if not default_db:
+    # env.db() returns an empty dictionary if DJANGO_DATABASE_URL is
+    # set to an empty string. This will break when we want to override
+    # default database configuration parameters for production.
+    raise ImproperlyConfigured(
+        'DJANGO_DATABASE_URL was set to an empty string. Provide a '
+        'valid URL or unset DJANGO_DATABASE_URL to use the default.'
+    )
+# If the database URL sets options via "?key=value" parameters, we
+# want to use them.  But if it doesn't, we still want to set OPTIONS
+# to an empty dictionary, which django-environ doesn't do by default.
+default_db.setdefault('OPTIONS', {})
 DATABASES = {
-    'default': env.db('DJANGO_DATABASE_URL',
-                      default="sqlite://:memory:"),
+    'default': default_db,
 }
 
 CACHES = {

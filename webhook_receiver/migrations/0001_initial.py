@@ -3,7 +3,13 @@
 from django.db import migrations, models
 import django.utils.timezone
 import django_fsm
-from jsonfield.fields import JSONField
+try:
+    # Django 3.1 and later has a built-in JSONField
+    from django.db.models import JSONField
+except ImportError:
+    # For earlier Django versions we must use JSONField from
+    # jsonfield2
+    from jsonfield.fields import JSONField
 
 
 class Migration(migrations.Migration):
