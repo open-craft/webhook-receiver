@@ -30,9 +30,9 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
-        'celery>=3.1.25',
-        'django>=2.2',
-        'django-celery>=3.2.1',
+        'celery>=5.2.2,<6.0.0',
+        'django==3.2.13',
+        # 'django-celery>=3.2.1',
         'django_fsm',
         'edx-rest-api-client>=1.9.2',
         'edx-auth-backends>=2.0.2',
