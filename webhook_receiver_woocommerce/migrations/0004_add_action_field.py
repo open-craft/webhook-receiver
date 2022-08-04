@@ -6,18 +6,14 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('webhook_receiver_shopify', '0007_rename_id_to_order_id'),
+        ('webhook_receiver_woocommerce', '0003_add_webhook_fk'),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='shopifyorder',
+            model_name='woocommerceorder',
             name='action',
             field=models.CharField(choices=[('enroll', 'enroll'), ('unenroll', 'unenroll')], default='enroll', max_length=8),
             preserve_default=False,
-        ),
-        migrations.AddConstraint(
-            model_name='shopifyorder',
-            constraint=models.UniqueConstraint(fields=('order_id', 'action'), name='unique_order_id_action'),
         ),
     ]

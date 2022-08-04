@@ -12,7 +12,7 @@ def populate(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('webhook_receiver_woocommerce', '0003_add_webhook_fk'),
+        ('webhook_receiver_woocommerce', '0005_fix_unique_constraint_name'),
     ]
 
     operations = [

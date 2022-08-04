@@ -7,7 +7,7 @@ from django.db.models.deletion import PROTECT
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('webhook_receiver_woocommerce', '0003_add_webhook_fk'),
+        ('webhook_receiver_woocommerce', '0004_add_action_field'),
     ]
 
     operations = [

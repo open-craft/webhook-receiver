@@ -16,7 +16,7 @@ def populate(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('webhook_receiver_shopify', '0006_add_webhook_fk'),
+        ('webhook_receiver_shopify', '0007_fix_unique_constraint_name'),
     ]
 
     operations = [
